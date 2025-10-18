@@ -1,4 +1,4 @@
-# 📚 Documentação - YouTube API
+# 📚 Documentação - YTBridge
 
 Documentação completa do projeto com foco em SOLID, Clean Architecture e práticas diretas.
 

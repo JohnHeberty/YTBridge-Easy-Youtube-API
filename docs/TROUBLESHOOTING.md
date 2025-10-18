@@ -1,8 +1,6 @@
-# 🔧 Troubleshooting - YouTube API# 🔧 Troubleshooting Guide - YouTube API
+# 🔧 Troubleshooting - YTBridge
 
-
-
-## 🚀 Problemas ComunsEste guia ajuda a resolver problemas comuns ao usar a YouTube API.
+## 🚀 Problemas Comuns
 
 
 

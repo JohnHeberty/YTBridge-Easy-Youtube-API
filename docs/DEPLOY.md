@@ -1,4 +1,4 @@
-# 🚀 Guia de Deploy - YouTube API
+# 🚀 Guia de Deploy - YTBridge
 
 ## ⚡ Início Rápido
 
@@ -132,7 +132,7 @@ RATE_LIMIT_REQUESTS=100      # máx requisições
 RATE_LIMIT_WINDOW=60         # janela em segundos
 
 # API
-API_TITLE="YouTube API"
+API_TITLE="YTBridge"
 API_VERSION="1.0.0"
 WORKERS=4                    # workers Uvicorn
 ```
@@ -422,7 +422,7 @@ sudo nano /etc/systemd/system/youtube-api.service
 
 ```ini
 [Unit]
-Description=YouTube API Docker Compose
+Description=YTBridge Docker Compose
 Requires=docker.service
 After=docker.service
 

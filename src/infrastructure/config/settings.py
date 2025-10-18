@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     """
     
     # API Settings
-    APP_NAME: str = "YouTube API"
+    APP_NAME: str = "YTBridge"
     APP_VERSION: str = "1.0.0"
     API_V1_PREFIX: str = "/api/v1"
     DEBUG: bool = False

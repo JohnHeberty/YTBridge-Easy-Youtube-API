@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# monitor.sh - Real-time monitoring for YouTube API
+#!/bin/bash
+# monitor.sh - Real-time monitoring for YTBridge
 # Usage: ./monitor.sh
 
 # Colors
@@ -23,7 +24,7 @@ show_dashboard() {
         clear
         
         echo -e "${CYAN}╔════════════════════════════════════════════════════════╗${NC}"
-        echo -e "${CYAN}║  YouTube API - Real-time Monitoring Dashboard         ║${NC}"
+        echo -e "${CYAN}║  🌉 YTBridge - Real-time Monitoring Dashboard        ║${NC}"
         echo -e "${CYAN}╚════════════════════════════════════════════════════════╝${NC}"
         echo -e "$(date '+%Y-%m-%d %H:%M:%S') | Refresh: ${REFRESH_INTERVAL}s | Press Ctrl+C to exit"
         echo ""

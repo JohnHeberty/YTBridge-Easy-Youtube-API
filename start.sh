@@ -97,8 +97,8 @@ echo -e "${CYAN}📊 Service Status:${NC}"
 $DOCKER_COMPOSE ps
 
 echo ""
-echo -e "${GREEN}╔════════════════════════════════════════════════╗${NC}"
-echo -e "${GREEN}║  🎉 YouTube API is ready!                     ║${NC}"
+echo -e "${GREEN}╔═══════════════════════════════════════════════╗${NC}"
+echo -e "${GREEN}║  🎉 YTBridge is ready!                        ║${NC}"
 echo -e "${GREEN}╚════════════════════════════════════════════════╝${NC}"
 echo ""
 echo -e "${CYAN}🔗 Access URLs:${NC}"

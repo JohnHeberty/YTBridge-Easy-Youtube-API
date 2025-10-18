@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# manage.sh - Management script for YouTube API
+#!/bin/bash
+# manage.sh - Management script for YTBridge
 # Usage: ./manage.sh [command]
 
 set -e
@@ -20,7 +21,7 @@ fi
 
 # Functions
 show_help() {
-    echo -e "${CYAN}YouTube API - Management Script${NC}"
+    echo -e "${CYAN}🌉 YTBridge - Management Script${NC}"
     echo ""
     echo "Usage: ./manage.sh [command]"
     echo ""

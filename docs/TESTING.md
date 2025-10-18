@@ -1,4 +1,4 @@
-# 🧪 Guia de Testes - YouTube API
+# 🧪 Guia de Testes - YTBridge
 
 ## 📋 Testes Rápidos
 
@@ -53,7 +53,7 @@ curl http://localhost:8000/api/v1/playlists/info/PLrAXtmErZgOeiKm4sgNOknGvNjby9e
 ```bash
 #!/bin/bash
 
-echo "🧪 Testando YouTube API..."
+echo "🧪 Testando YTBridge..."
 
 BASE_URL="http://localhost:8000/api/v1"
 PASSED=0

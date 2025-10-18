@@ -1,8 +1,8 @@
-# 🏗️ Arquitetura - YouTube API
+# 🏗️ Arquitetura - YTBridge
 
 ## Visão Geral
 
-Este projeto implementa **Clean Architecture** com princípios **SOLID**, garantindo código manutenível, testável e escalável.
+**YTBridge** implementa **Clean Architecture** com princípios **SOLID**, garantindo código manutenível, testável e escalável.
 
 ---
 
