@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: ytbridge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ytbridge-network
+
+  # YTBridge API Service
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ytbridge-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # API Settings
+      APP_NAME: "YouTube API"
+      APP_VERSION: "1.0.0"
+      API_V1_PREFIX: "/api/v1"
+      DEBUG: "False"
+      
+      # Server Settings
+      HOST: "0.0.0.0"
+      PORT: "8000"
+      WORKERS: "4"
+      
+      # Cache Settings (Using Redis)
+      CACHE_ENABLED: "True"
+      CACHE_TYPE: "redis"
+      CACHE_TTL: "3600"
+      CACHE_MAX_SIZE: "1000"
+      
+      # Redis Settings
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      # REDIS_PASSWORD: ""  # Uncomment if Redis requires password
+      
+      # Rate Limiting
+      RATE_LIMIT_ENABLED: "True"
+      RATE_LIMIT_REQUESTS: "100"
+      RATE_LIMIT_PERIOD: "60"
+      
+      # YouTube API Settings
+      DEFAULT_TIMEOUT: "10"
+      MAX_VIDEOS_PER_REQUEST: "100"
+      MAX_SEARCH_RESULTS: "50"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - youtube-api-network
+    volumes:
+      # Mount source code for development (comment out in production)
+      - ./src:/app/src:ro
+
+volumes:
+  redis_data:
+    driver: local
+
+networks:
+  youtube-api-network:
+    driver: bridge

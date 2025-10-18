@@ -1,0 +1,82 @@
+version: '3.8'
+
+# Docker Compose for Development
+# Usage: docker-compose -f docker-compose.dev.yml up
+
+services:
+  # Redis Cache Service
+  redis:
+    image: redis:7-alpine
+    container_name: youtube-api-redis-dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data_dev:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    networks:
+      - youtube-api-network-dev
+
+  # YouTube API Service (Development Mode)
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: youtube-api-dev
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # Development settings
+      DEBUG: "True"
+      
+      # Cache Settings
+      CACHE_ENABLED: "True"
+      CACHE_TYPE: "redis"
+      CACHE_TTL: "1800"  # 30 minutes (shorter for dev)
+      
+      # Redis Settings
+      REDIS_HOST: "redis"
+      REDIS_PORT: "6379"
+      REDIS_DB: "0"
+      
+      # Rate Limiting (more permissive for dev)
+      RATE_LIMIT_ENABLED: "True"
+      RATE_LIMIT_REQUESTS: "1000"
+      RATE_LIMIT_PERIOD: "60"
+    depends_on:
+      redis:
+        condition: service_healthy
+    networks:
+      - youtube-api-network-dev
+    volumes:
+      # Mount source code for hot reload
+      - ./src:/app/src
+    command: uvicorn src.presentation.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Redis Commander (Web UI for Redis)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: youtube-api-redis-commander
+    restart: unless-stopped
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: "local:redis:6379:0"
+    depends_on:
+      - redis
+    networks:
+      - youtube-api-network-dev
+
+volumes:
+  redis_data_dev:
+    driver: local
+
+networks:
+  youtube-api-network-dev:
+    driver: bridge
