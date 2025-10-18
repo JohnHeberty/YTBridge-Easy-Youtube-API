@@ -76,17 +76,38 @@ def _parse_count(text):
 
 
 def _parse_duration(duration_text):
-    """Parse duration text (e.g. "12:34") into seconds"""
+    """
+    Parse duration text (e.g. "12:34") into seconds.
+    Handles special cases like "Upcoming", "LIVE", "PREMIERING", etc.
+    """
     if not duration_text:
         return 0
-
-    time_parts = duration_text.split(":")
-    if len(time_parts) == 3:
-        return int(time_parts[0]) * 3600 + int(time_parts[1]) * 60 + int(time_parts[2])
-    elif len(time_parts) == 2:
-        return int(time_parts[0]) * 60 + int(time_parts[1])
-    elif len(time_parts) == 1:
-        return int(time_parts[0])
+    
+    # Handle special cases (upcoming videos, live streams, etc)
+    special_cases = ["upcoming", "live", "premiering", "premiere", "scheduled"]
+    if any(case in duration_text.lower() for case in special_cases):
+        return 0  # Return 0 for special cases
+    
+    # Handle "SHORTS" badge
+    if "short" in duration_text.lower():
+        return 60  # Default 60s for shorts
+    
+    try:
+        time_parts = duration_text.split(":")
+        
+        if len(time_parts) == 3:
+            # HH:MM:SS
+            return int(time_parts[0]) * 3600 + int(time_parts[1]) * 60 + int(time_parts[2])
+        elif len(time_parts) == 2:
+            # MM:SS
+            return int(time_parts[0]) * 60 + int(time_parts[1])
+        elif len(time_parts) == 1:
+            # SS only
+            return int(time_parts[0])
+    except (ValueError, IndexError):
+        # If parsing fails, return 0
+        return 0
+    
     return 0
 
 
@@ -575,7 +596,15 @@ def extract_channel_metadata(initial_data):
 
 
 def extract_channel_videos(initial_data, max_videos=10):
-    """Extract recent videos from the channel with detailed information"""
+    """
+    Extract recent videos from the channel with detailed information.
+    
+    Uses multiple extraction strategies to support different YouTube structures:
+    1. Try Videos tab first (richGridRenderer or gridRenderer)
+    2. If Videos tab is empty, try Home tab (sectionListRenderer with videoRenderer)
+    3. Try shelfRenderer in Home tab as fallback
+    4. secondaryContents as last resort
+    """
     videos = []
 
     try:
@@ -585,6 +614,39 @@ def extract_channel_videos(initial_data, max_videos=10):
             .get("tabs", [])
         )
 
+        # STRATEGY 1: Videos tab - richGridRenderer (NEWER YOUTUBE STRUCTURE)
+        for tab in tabs:
+            tab_renderer = tab.get("tabRenderer", {})
+            
+            if tab_renderer.get("title") == "Videos":
+                # Try richGridRenderer first (newer structure)
+                rich_grid = (
+                    tab_renderer.get("content", {})
+                    .get("richGridRenderer", {})
+                    .get("contents", [])
+                )
+                
+                if rich_grid:
+                    for rich_item in rich_grid[:max_videos * 2]:
+                        if "richItemRenderer" in rich_item:
+                            video_renderer = (
+                                rich_item.get("richItemRenderer", {})
+                                .get("content", {})
+                                .get("videoRenderer", {})
+                            )
+                            
+                            if video_renderer:
+                                video = _extract_video_info(video_renderer)
+                                if video:
+                                    videos.append(video)
+                                    
+                                    if len(videos) >= max_videos:
+                                        return videos[:max_videos]
+                    
+                    if videos:
+                        return videos[:max_videos]
+
+        # STRATEGY 2: Videos tab - gridRenderer (OLDER STRUCTURE)
         for tab in tabs:
             tab_renderer = tab.get("tabRenderer", {})
 
@@ -605,50 +667,84 @@ def extract_channel_videos(initial_data, max_videos=10):
                             continue
 
                         items = grid_renderer.get("items", [])
-                        for grid_item in items[:max_videos]:
+                        for grid_item in items:
                             video = _extract_video_info(
                                 grid_item.get("gridVideoRenderer", {})
                             )
                             if video:
                                 videos.append(video)
+                                
+                                if len(videos) >= max_videos:
+                                    return videos[:max_videos]
 
                 if videos:
-                    return videos
+                    return videos[:max_videos]
 
-        for tab in tabs:
-            tab_renderer = tab.get("tabRenderer", {})
+        # STRATEGY 3: Home tab - sectionListRenderer with videoRenderer
+        # This is where some channels (like Pablo Marçal) store their videos
+        if not videos:
+            for tab in tabs:
+                tab_renderer = tab.get("tabRenderer", {})
 
-            if tab_renderer.get("title") == "Home" and not videos:
-                sections = (
-                    tab_renderer.get("content", {})
-                    .get("sectionListRenderer", {})
-                    .get("contents", [])
-                )
-
-                for section in sections:
-                    item_section = section.get("itemSectionRenderer", {}).get(
-                        "contents", []
+                if tab_renderer.get("title") == "Home":
+                    sections = (
+                        tab_renderer.get("content", {})
+                        .get("sectionListRenderer", {})
+                        .get("contents", [])
                     )
-                    for item in item_section:
-                        shelf_renderer = item.get("shelfRenderer", {})
-                        if shelf_renderer:
-                            title_text = _extract_text(shelf_renderer.get("title", {}))
-                            if any(
-                                keyword in title_text
-                                for keyword in ["Video", "Upload", "Recent"]
-                            ):
-                                content = shelf_renderer.get("content", {}).get(
-                                    "horizontalListRenderer", {}
-                                )
-                                items = content.get("items", [])
 
-                                for list_item in items[:max_videos]:
-                                    video = _extract_video_info(
-                                        list_item.get("gridVideoRenderer", {})
-                                    )
-                                    if video:
-                                        videos.append(video)
+                    for section in sections:
+                        item_section = section.get("itemSectionRenderer", {}).get(
+                            "contents", []
+                        )
+                        
+                        for item in item_section:
+                            # Try shelfRenderer first
+                            shelf_renderer = item.get("shelfRenderer", {})
+                            if shelf_renderer:
+                                content = shelf_renderer.get("content", {})
+                                
+                                # Check for horizontalListRenderer
+                                if "horizontalListRenderer" in content:
+                                    items = content["horizontalListRenderer"].get("items", [])
+                                    for list_item in items:
+                                        # Try both gridVideoRenderer and videoRenderer
+                                        video_renderer = list_item.get("gridVideoRenderer") or list_item.get("videoRenderer")
+                                        if video_renderer:
+                                            video = _extract_video_info(video_renderer)
+                                            if video:
+                                                videos.append(video)
+                                                if len(videos) >= max_videos:
+                                                    return videos[:max_videos]
+                                
+                                # Check for expandedShelfContentsRenderer
+                                if "expandedShelfContentsRenderer" in content:
+                                    items = content["expandedShelfContentsRenderer"].get("items", [])
+                                    for list_item in items:
+                                        video_renderer = list_item.get("videoRenderer")
+                                        if video_renderer:
+                                            video = _extract_video_info(video_renderer)
+                                            if video:
+                                                videos.append(video)
+                                                if len(videos) >= max_videos:
+                                                    return videos[:max_videos]
+                            
+                            # Try direct videoRenderer in itemSection
+                            if "videoRenderer" in item:
+                                video = _extract_video_info(item["videoRenderer"])
+                                if video:
+                                    videos.append(video)
+                                    if len(videos) >= max_videos:
+                                        return videos[:max_videos]
+                        
+                        if len(videos) >= max_videos:
+                            break
+                    
+                    if videos:
+                        return videos[:max_videos]
 
+        # STRATEGY 4: secondaryContents (LAST RESORT)
+        # Very old structure or special cases
         if not videos:
             sections = (
                 initial_data.get("contents", {})
@@ -669,17 +765,25 @@ def extract_channel_videos(initial_data, max_videos=10):
                                     "horizontalListRenderer", {}
                                 ).get("items", [])
 
-                                for video_item in video_items[:max_videos]:
+                                for video_item in video_items:
                                     video = _extract_video_info(
                                         video_item.get("gridVideoRenderer", {})
                                     )
                                     if video:
                                         videos.append(video)
+                                        
+                                        if len(videos) >= max_videos:
+                                            return videos[:max_videos]
 
     except Exception as e:
-        return {"error": f"Error extracting channel videos: {str(e)}"}
+        # Return error but don't crash
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error extracting channel videos: {str(e)}", exc_info=True)
+        return []
 
-    return videos
+    return videos[:max_videos] if videos else []
+
 
 
 def get_channel_info(channel_input, include_videos=True, max_videos=10, timeout=10):
