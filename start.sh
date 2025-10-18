@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# start.sh - Quick start script for YouTube API
+# start.sh - Quick start script for YTBridge
 # This script builds and starts the API + Redis containers
 
 set -e
@@ -14,7 +14,7 @@ NC='\033[0m' # No Color
 
 echo -e "${CYAN}"
 echo "╔════════════════════════════════════════════════╗"
-echo "║       YouTube API - Quick Start                ║"
+echo "║       🌉 YTBridge - Quick Start                ║"
 echo "╚════════════════════════════════════════════════╝"
 echo -e "${NC}"
 
@@ -75,8 +75,10 @@ MAX_WAIT=60
 ELAPSED=0
 
 while [ $ELAPSED -lt $MAX_WAIT ]; do
-    API_HEALTH=$($DOCKER_COMPOSE ps youtube-api 2>/dev/null | grep -c "healthy" || echo "0")
+    # Check if API container is healthy (fixed: removed || echo to avoid double output)
+    API_HEALTH=$($DOCKER_COMPOSE ps ytbridge-api 2>/dev/null | grep -c "healthy")
     
+    # If grep finds nothing, -c returns 0 (which is valid)
     if [ "$API_HEALTH" -gt 0 ]; then
         echo -e "${GREEN}✅ API is healthy!${NC}\n"
         break
