@@ -71,13 +71,15 @@ def fetch_url(url, headers=None, timeout=5, method="GET", json_data=None):
             if "Content-Type" not in headers:
                 headers["Content-Type"] = "application/json"
 
+        # Initialize request object
+        req = Request(url, headers=headers, method=method, data=data)
+        
+        # If proxies are available and active, use them
         if proxys:
             choice_proxy = [row for row in proxys if row.get("live", True)]
             if choice_proxy:
                 proxy = choice_proxy[0]
                 req = Request(url, headers=headers, method=method, data=data, proxies=proxy)
-            else:
-                req = Request(url, headers=headers, method=method, data=data)
 
         with urlopen(req, timeout=timeout) as response:
             return response.read().decode("utf-8", errors="ignore")

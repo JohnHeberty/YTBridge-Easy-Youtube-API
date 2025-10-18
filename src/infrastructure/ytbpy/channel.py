@@ -714,14 +714,7 @@ def get_channel_info(channel_input, include_videos=True, max_videos=10, timeout=
     if not initial_data:
         return {"error": "Failed to extract channel data"}
 
-    def get_dict_structure(d):
-        if not isinstance(d, dict):
-            return type(d).__name__
-        return {k: get_dict_structure(v) for k, v in d.items()}
-
-    with open("initial_data_structure.json", "w") as f:
-        json.dump(get_dict_structure(initial_data), f)
-
+    # Extract channel ID if not already provided
     if not channel_id:
         channel_id = initial_data.get("header", {}).get(
             "c4TabbedHeaderRenderer", {}
